@@ -1,0 +1,62 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.18;
+
+import "@openzeppelin/contracts@4.9/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts@4.9/access/Ownable.sol";
+
+contract DegenToken is ERC20, Ownable {
+    struct Product {
+        string name;
+        uint256 price;
+    }
+
+    Product[] public products;
+
+    event ProductPurchased(address indexed buyer, string productName, uint256 productPrice);
+
+    constructor(uint256 initialSupply) ERC20("Degen", "DGN") {
+        _mint(msg.sender, initialSupply);
+
+        addProduct("Lamborghini Aventador", 10); 
+        addProduct("Porsche GT", 30);
+        addProduct("Ferrari SP90", 50); 
+        addProduct("Rolls Royce", 25);
+    }
+
+    function addProduct(string memory name, uint256 price) internal onlyOwner {
+        products.push(Product(name, price));
+    }
+
+    function getProduct(uint256 index) public view returns (string memory name, uint256 price) {
+        require(index < products.length, "Product index out of bounds");
+        Product storage product = products[index];
+        return (product.name, product.price);
+    }
+
+    function mint(uint256 amount) public onlyOwner {
+        _mint(msg.sender, amount);
+    }
+
+    function burn(uint256 amount) public {
+        require(amount > 10, "Amount should be greater than 10");
+        require(amount <= balanceOf(msg.sender), "Insufficient balance to burn");
+        _burn(msg.sender, amount);
+    }
+
+    function buyProduct(uint256 productIndex) public {
+        require(productIndex < products.length, "Product index out of bounds");
+        Product storage product = products[productIndex];
+        require(balanceOf(msg.sender) >= product.price, "Insufficient balance to buy product");
+        _burn(msg.sender, product.price);
+        emit ProductPurchased(msg.sender, product.name, product.price);
+    }
+
+    function transfer(address to, uint256 amount) public override returns (bool) {
+        _transfer(_msgSender(), to, amount);
+        return true;
+    }
+
+    function getAllProducts() public view returns (Product[] memory) {
+        return products;
+    }
+}
